@@ -11,13 +11,20 @@ class MoviesController < ApplicationController
   end
 
   def index
-    @order_by = params[:order_by]
+    @all_ratings = ['G', 'PG', 'PG-13', 'R']
+    @order_by = params[:order_by] ? params[:order_by] : flash[:order_by]
+    @ratings = params.has_key?(:ratings) ? params[:ratings] : Hash[@all_ratings.map {|rating| [rating, 1]}]
 
-    if @order_by != nil
-      @movies = Movie.all.order("#{@order_by} ASC")
+    if @ratings.empty?
+      @movies = Movie.all if @ratings.empty?
     else
-      @movies = Movie.all
+      @movies = Movie.where(:rating => @ratings.keys) unless @ratings.empty?
     end
+    
+    @movies = @movies.order("#{@order_by} ASC") if @order_by
+    
+    flash[:order_by] = @order_by
+
   end
 
   def new
