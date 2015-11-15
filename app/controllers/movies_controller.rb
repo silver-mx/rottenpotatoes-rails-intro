@@ -12,19 +12,35 @@ class MoviesController < ApplicationController
 
   def index
     @all_ratings = ['G', 'PG', 'PG-13', 'R']
-    @order_by = params[:order_by] ? params[:order_by] : flash[:order_by]
-    @ratings = params.has_key?(:ratings) ? params[:ratings] : Hash[@all_ratings.map {|rating| [rating, 1]}]
 
-    if @ratings.empty?
-      @movies = Movie.all if @ratings.empty?
+    unless params.has_key?(:ratings) and !params[:ratings].empty? and params.has_key?(:order_by)
+      redirect_to_index_with_all_params
     else
-      @movies = Movie.where(:rating => @ratings.keys) unless @ratings.empty?
-    end
-    
-    @movies = @movies.order("#{@order_by} ASC") if @order_by
-    
-    flash[:order_by] = @order_by
+      @order_by = params[:order_by]
+      @ratings = params[:ratings]
 
+      if @ratings.empty?
+        @movies = Movie.all
+      else
+        @movies = Movie.where(:rating => @ratings.keys)
+      end
+
+      @movies = @movies.order("#{@order_by} ASC") if @order_by
+
+      session[:ratings] = @ratings
+      session[:order_by] = @order_by
+    end
+  end
+
+  def redirect_to_index_with_all_params
+    session[:ratings] = Hash[@all_ratings.map {|rating| [rating, 1]}] unless session.has_key?(:ratings)
+    session[:order_by] = 'id' unless session.has_key?(:order_by)
+
+    @ratings = (params.has_key?(:ratings) and !params[:ratings].empty?) ? params[:ratings] : session[:ratings]
+    @order_by = params.has_key?(:order_by) ? params[:order_by] : session[:order_by]
+
+    flash.keep
+    redirect_to movies_path(ratings: @ratings, order_by: @order_by)
   end
 
   def new
